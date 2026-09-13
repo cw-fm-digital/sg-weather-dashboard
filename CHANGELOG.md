@@ -4,93 +4,214 @@ All notable changes to the **Singapore Weather & Outdoor Work Dashboard** are do
 
 ---
 
+## [2.6.2] - 2026-09-11
+
+### Safe Developer Test Mode
+
+#### Added
+
+- Added a hidden Developer Test Mode panel.
+- Added keyboard access using `Ctrl + Shift + D`.
+- Added optional panel opening using `?debug=true`.
+- Added a persistent simulation warning banner.
+- Added amber outlines around simulated dashboard fields.
+- Added predefined scenarios:
+  - Lightning Red ≤8 km
+  - Lightning Amber 8-15 km
+  - High WBGT
+  - Heavy Rain
+  - Combined Hazard
+  - Lightning Distance Unavailable
+  - Clear Conditions
+- Added Custom scenario inputs for:
+  - Lightning state
+  - Lightning distance
+  - Lightning observation count
+  - WBGT
+  - PSI
+  - Rainfall
+  - Forecast
+- Added numeric input limits.
+- Added lightning threshold validation.
+- Added an Exit Test Mode and Restore Live Data control.
+
+#### Safety Controls
+
+- Developer Test Mode is hidden by default.
+- Opening the panel does not activate a simulation.
+- Test values are session only.
+- Test values are not saved to `localStorage`.
+- Live refresh is paused while a simulation is active.
+- Simulated results do not update Last Successful Refresh.
+- Simulated results do not update location-specific freshness history.
+- The test panel cannot be hidden while a simulation is active.
+- Page reload returns the dashboard to live mode.
+- Exiting test mode starts a full live refresh.
+
+#### Corrected
+
+- Corrected the Lightning Distance Unavailable Control Priority.
+- Added an explicit `lightningFallback` branch before general Red, critical-data, Amber, controls, and routine branches.
+
+Correct logic:
+
+```javascript
+if(primary.key === "lightningR") {
+    pr = "IMMEDIATE ACTION REQUIRED";
+    pc = "p-immediate";
+} else if(primary.key === "lightningFallback") {
+    pr = "DATA VERIFICATION REQUIRED";
+    pc = "p-data";
+}
+```
+
+The Lightning Distance Unavailable scenario now produces:
+
+```text
+Risk Matrix:
+Lightning = DISTANCE UNAVAILABLE
+Overall = AMBER
+
+Primary Hazard:
+Lightning Distance Unavailable
+
+Control Priority:
+DATA VERIFICATION REQUIRED
+```
+
+#### Scenario Results
+
+- Lightning Red: Immediate Action Required
+- Lightning Amber: High Attention Required
+- High WBGT: High Attention Required
+- Heavy Rain: Controls Required
+- Combined Hazard: Immediate Action Required
+- Lightning Distance Unavailable: Data Verification Required
+- Clear Conditions: Routine Monitoring
+
+#### Retained
+
+- Location presets
+- ITE College West preset
+- Custom Location
+- Current Device Location
+- Nearest lightning-distance calculation
+- Nearest weather-station selection
+- WBGT location selection and fallback
+- Forecast area selection and fallback
+- PSI-region inference
+- Cause-Based Advisory
+- Refresh Now
+- Seven-feed progress
+- Request timeout
+- Refresh lock
+- Pending refresh queue
+- Last Successful Refresh by location
+- Data Freshness by location
+- System Health
+- Dashboard Health
+- Payload-validation diagnostics
+
+#### Known Minor Risks
+
+- System Health can show all feeds as OK during simulation because the test mode injects controlled healthy feed states.
+- Live freshness remains visible during simulation and represents the last live successful refresh.
+- `testSnapshot` is captured but live restoration uses a new refresh rather than snapshot restoration.
+- Decision Basis can show `None` for lightning distance when the distance is unavailable, while the Primary Hazard correctly states Lightning Distance Unavailable.
+
+These items do not change the corrected hazard priority and do not prevent live data restoration.
+
+---
+
+## [2.6.1] - 2026-09-11
+
+### Location Engine Hotfix
+
+#### Fixed
+
+- Fixed the browser startup error caused by declaring a global variable named `location`.
+- Renamed the application state variable to `selectedLocation`.
+- Retained payload object properties named `location`.
+
+#### Added
+
+- Added a 15-second timeout for each API request.
+- Added request cancellation using `AbortController`.
+- Added `TIMEOUT` feed state.
+- Expanded coordinate parsing.
+- Added support for coordinate arrays where appropriate.
+- Added Lightning Distance Unavailable fallback.
+- Added `FALLBACK` feed state.
+- Added non-blocking schema diagnostics.
+
+#### Changed
+
+- Changed payload validation from blocking validation to diagnostic validation.
+- Changed lightning handling to retain the observation count when distance cannot be resolved.
+- Changed unresolved lightning distance from clear status to an Amber verification state.
+- Allowed later feeds to continue after a controlled feed failure or timeout.
+
+---
+
+## [2.6.0] - 2026-09-11
+
+### Location-Based Selection and Lightning Distance
+
+#### Added
+
+- Added location-based selection.
+- Added West, East, North, South, and Central reference locations.
+- Added ITE College West preset.
+- Added Custom Location.
+- Added Current Device Location using browser geolocation.
+- Added selected-location persistence.
+- Added nearest MSS lightning-distance calculation.
+- Added 8 km Red and 15 km Amber thresholds.
+- Added nearest Temperature station selection.
+- Added nearest Humidity station selection.
+- Added nearest Rainfall station selection.
+- Added nearest valid WBGT reading selection.
+- Added nearest forecast-area selection.
+- Added configured regional forecast fallback.
+- Added automatic PSI-region inference.
+- Added location-specific successful-refresh history.
+- Added selected-location snapshot protection.
+- Added payload-validation framework.
+
+#### Known Issue
+
+- The release contained a browser startup conflict because the app declared `location` as a global lexical variable.
+- The release was superseded by v2.6.1.
+
+---
+
+## [2.5.0] - 2026-09-11
+
+### Cause-Based Advisory Enhancement
+
+#### Added
+
+- Added Primary Hazard identification.
+- Added Measurement, Trigger, and Control fields.
+- Added Supporting Conditions.
+- Added Affected Activities.
+- Added hazard-specific Operational Actions.
+- Added Control Priority levels.
+- Added Decision Basis.
+- Added rule-based handling for lightning, heat, air quality, rain, forecast, and missing data.
+
+---
+
 ## [2.4.2] - 2026-09-10
 
 ### Operational Readiness Enhancement
 
-#### Added
-
-- Added a **Refresh Now** button.
-- Added seven-feed refresh-progress reporting:
-  - WBGT
-  - Lightning
-  - PSI
-  - Temperature
-  - Humidity
-  - Rainfall
-  - Forecast
-- Added a Last Successful Refresh field.
-- Added a separate Last Dashboard Refresh Completed field.
-- Added Data Freshness status:
-  - Fresh
-  - Aging
-  - Stale
-  - No Successful Refresh
-- Added browser storage for the last successful refresh timestamp.
-- Added the last successful refresh and freshness status to the footer.
-- Added refresh completion messages for fully successful and degraded refreshes.
-
-#### Changed
-
-- Updated the browser title to v2.4.2.
-- Updated the visible version label to:
-
-```text
-Version 2.4.2 | Operational Readiness Enhancement
-```
-
-- Changed freshness calculation to use the last fully successful seven-feed refresh.
-- Changed the Refresh Now button to a disabled state while a refresh is active.
-- Kept the five-minute automatic refresh schedule.
-
-#### Refresh behaviour
-
-- The Refresh Now button uses the same protected refresh path as the automatic refresh.
-- Parallel refresh sequences are prevented.
-- An additional refresh request during an active refresh records one pending refresh.
-- The selected region is captured once for each seven-feed sequence.
-- The refresh button is restored in the `finally` block.
-- A degraded refresh updates the completion time but does not overwrite the last successful timestamp.
-
-#### Freshness thresholds
-
-```text
-Fresh: less than 10 minutes
-Aging: 10 to less than 20 minutes
-Stale: 20 minutes or more
-No Successful Refresh: no valid successful timestamp
-```
-
-#### Retained
-
-The following functions remain in place:
-
-- Preferred-region persistence
-- Active Region indicator
-- Regional PSI
-- Regional forecast-area selection
-- Regional Temperature station selection
-- Regional Humidity station selection
-- Regional Rainfall station selection
-- Lightning Priority Banner
-- Advisory priority
-- Risk Matrix thresholds
-- Forecast fallback order
-- API request spacing
-- Refresh lock protection
-- Pending-refresh queue
-- API failure handling
-- Live Data Incomplete protection
-- Dashboard Health and System Health
-- Five-minute automatic refresh
-
-#### Operational impact
-
-- Users can request an immediate refresh without starting a parallel API sequence.
-- Users can see the current feed being refreshed.
-- Users can distinguish a refresh attempt from a complete seven-feed success.
-- Users can identify when the last complete dataset is Fresh, Aging, or Stale.
-- The successful timestamp remains available after page reload in the same browser.
+- Added Refresh Now.
+- Added seven-feed refresh progress.
+- Added Last Dashboard Refresh Completed.
+- Added Last Successful Refresh.
+- Added Data Freshness.
+- Added successful-refresh browser storage.
 
 ---
 
@@ -98,26 +219,12 @@ The following functions remain in place:
 
 ### Operational Visibility Enhancement
 
-#### Added
-
-- Added an Active Region indicator below the Singapore clock.
-- Added the Active Region to the footer Dashboard Status summary.
-- Added coloured Dashboard Health badges.
-- Added detailed status text for each System Health data feed.
-- Added a Forecast Area label.
-- Added a footer Dashboard Status section.
-- Added a Data Classification legend.
-- Added a version tooltip.
-
-#### Changed
-
-- Reformatted regional station information to show station name, station ID, distance, and selected region.
-- Changed the System Health display from a basic list to a feed-and-status grid.
-- Improved mobile presentation for Active Region, System Health, and Data Classification.
-
-#### Retained
-
-No weather-engine or safety-decision logic was intentionally changed in this release.
+- Added Active Region.
+- Added Dashboard Health badges.
+- Added detailed System Health status.
+- Added Forecast Area label.
+- Added Dashboard Status footer.
+- Added Data Classification.
 
 ---
 
@@ -125,27 +232,10 @@ No weather-engine or safety-decision logic was intentionally changed in this rel
 
 ### Regional Weather Station Selection
 
-#### Added
-
-- Added nearest-active-station selection for Air Temperature.
-- Added nearest-active-station selection for Relative Humidity.
-- Added nearest-active-station selection for Rainfall.
-- Added representative reference points for West, East, North, South, and Central.
-- Added station name, station ID, distance, and selected-region information.
-- Added regional loading states for Temperature, Humidity, and Rainfall.
-
-#### Changed
-
-- Changed Temperature from the first returned reading to a selected regional station reading.
-- Changed Humidity from the first returned reading to a selected regional station reading.
-- Changed Rainfall from the first returned reading to a selected regional station reading.
-- Expanded selected-region refresh handling to PSI, Forecast, Temperature, Humidity, and Rainfall.
-
-#### Reliability
-
-- Regional selection uses only stations with coordinates and a current numeric reading.
-- Each refresh captures the selected region before requesting regional feeds.
-- Failed regional station selection produces an unavailable state rather than an unrelated reading.
+- Added regional Temperature selection.
+- Added regional Humidity selection.
+- Added regional Rainfall selection.
+- Added station name, ID, distance, and region information.
 
 ---
 
@@ -153,137 +243,112 @@ No weather-engine or safety-decision logic was intentionally changed in this rel
 
 ### Preferred Region Persistence
 
-- Added preferred-region storage using `localStorage`.
-- Added region validation.
-- Added automatic restoration of the region selector during page load.
-- Added safe fallback to West.
-- Added browser storage error handling.
-- Removed an invalid `refreshZone` reference from the clock update function.
+- Added preferred region browser storage.
+- Added validation and West fallback.
 
 ---
 
 ## [2.2.5 Patch 2.1] - 2026-09-09
 
-### Region Refresh State Completion Fix
-
 - Added selected-region refresh state.
-- Cleared previous PSI and forecast values during region changes.
-- Added regional feed readiness handling.
-- Expanded regional forecast fallback areas.
+- Cleared prior regional values during location changes.
+- Expanded forecast fallback areas.
 
 ---
 
 ## [2.2.4] - 2026-09-09
 
-### Refresh Lock Hardening
-
-- Added `try/finally` protection to the controlled refresh function.
-- Ensured the refresh lock is released after unexpected errors.
+- Added `try` and `finally` refresh-lock protection.
 - Preserved pending refresh handling.
 
 ---
 
 ## [2.2.3] - 2026-09-09
 
-### API Failure and Stale-State Protection
-
-- Added failed metric cleanup.
-- Added summary-value cleanup.
+- Added failed-metric cleanup.
 - Added Live Data Incomplete handling.
 - Added Unknown Risk state.
-- Added grey data-integrity indicators.
 - Prevented missing critical data from being treated as safe.
 
 ---
 
 ## [2.2.2] - 2026-09-09
 
-### Forecast Mapping Protection
-
-- Added ordered forecast-area fallbacks.
-- Removed silent fallback to an unrelated forecast area.
-- Added Mapping Unavailable handling.
+- Added ordered forecast fallback.
+- Removed silent unrelated-area selection.
+- Added Mapping Unavailable.
 
 ---
 
 ## [2.2.1] - 2026-09-09
 
-### Refresh Queue Enhancement
-
-- Added one pending refresh request when a refresh is already active.
-- Reduced missed selected-region updates.
+- Added one pending refresh request.
 
 ---
 
 ## [2.2.0] - 2026-09-09
 
-### Lightning Operations Enhancement
-
-- Added Lightning Priority Banner.
-- Added blinking lightning icon and value.
+- Added lightning priority banner.
+- Added blinking lightning display.
 - Added Hazardous Air Quality banner.
-- Aligned PSI card, Risk Matrix, and overall risk thresholds.
-- Added lightning-specific outdoor work controls.
+- Aligned PSI and overall thresholds.
 
 ---
 
 ## [2.1.0] - 2026-09-09
 
-### Regional PSI and Forecast Foundation
-
-- Added regional PSI retrieval.
-- Added dynamic PSI labels.
+- Added regional PSI.
 - Added regional forecast mapping.
-- Added lightning animation.
-- Added test-mode framework.
+- Added test switches.
 
 ---
 
 ## [2.0.0] - 2026-09-09
 
-### Singapore Multi-Zone Foundation
-
-- Created the Singapore Weather & Outdoor Work Dashboard.
-- Added West, East, North, South, and Central selection.
-
----
-
-## Current Known Limitations
-
-- Region reference points are representative points and not official boundaries.
-- Nearest-station readings may not represent the entire selected region.
-- Temperature, Humidity, and Rainfall can use different stations.
-- Lightning observations are Singapore-wide and not selected by region.
-- WBGT is a national feed and is not selected by region.
-- Forecasts are area-based and not exact-site forecasts.
-- Preferred-region and successful-refresh storage are local to each browser and device.
-- Clearing browser site data removes stored values.
-- External API downtime or rate limits remain possible.
-- Freshness is based on the last seven-feed browser success, not official source publication time.
-- No historical trend storage is included.
-- No persistent operational event log is included.
-- The dashboard is not an official system of record.
+- Created the Singapore multi-zone dashboard.
 
 ---
 
 ## Release Control Checklist
 
-Before publishing:
+Before publishing v2.6.2:
 
-1. Confirm the browser title and visible version label show v2.4.2.
-2. Confirm all test-mode switches are `false`.
+1. Confirm the title and visible version show v2.6.2.
+2. Confirm production test switches are `false`.
 3. Run a JavaScript syntax check.
 4. Check for duplicate and missing HTML IDs.
-5. Test all five regions.
-6. Confirm Active Region follows the selector.
-7. Confirm preferred region persists after reload.
-8. Confirm Refresh Now is disabled during an active refresh.
-9. Confirm progress moves through all seven feeds.
-10. Confirm the completion timestamp updates after each completed refresh.
-11. Confirm the successful timestamp updates only when all seven feeds are `OK`.
-12. Confirm freshness changes from Fresh to Aging and Stale at the defined thresholds.
-13. Confirm System Health shows all seven feeds.
-14. Confirm no browser console errors appear.
+5. Confirm the dashboard loads without a global `location` declaration error.
+6. Confirm all API requests have timeout protection.
+7. Test all location presets.
+8. Test ITE College West.
+9. Test one custom location.
+10. Test Current Device Location if permission is available.
+11. Confirm station names and distances.
+12. Confirm PSI-region inference.
+13. Confirm forecast-area selection or approved fallback.
+14. Confirm lightning distance, no observation, fallback, timeout, and unavailable states.
+15. Run all seven Developer Test Mode scenarios.
+16. Confirm Lightning Distance Unavailable shows Data Verification Required.
+17. Exit test mode and confirm a full live refresh starts.
+18. Confirm simulated data do not update successful-refresh history.
+19. Confirm no uncaught browser-console errors appear.
+20. Keep v2.6.1 as the immediate rollback version during initial monitoring.
+
+---
+
+## Current Known Limitations
+
+- Reference locations are not official boundaries.
+- PSI is regional rather than site specific.
+- Nearest-station data may not represent exact site conditions.
+- Different feeds can use different stations.
+- Forecast information is area based.
+- GPS availability and accuracy depend on the browser and device.
+- Lightning distance requires usable observation coordinates.
+- Browser storage does not transfer between devices.
+- External API outages, rate limits, timeouts, and schema changes remain possible.
+- Test mode validates decision logic, not live-source correctness.
+- The dashboard is not an official warning system or system of record.
 
 ---
 
